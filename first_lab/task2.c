@@ -52,7 +52,7 @@ enum register_status_codes {
 };
 
 enum register_status_codes _register(char * new_login, int new_password, 
-    User ** user_array, int * user_array_size) {
+    User ** user_array, int * user_array_size, int * user_array_capacity) {
     if (!login_validation(new_login)) return reg_wrong_login;
     if (*user_array_size > 1) {
         for (int i = 1; i < (*user_array_size); i++) {
@@ -63,15 +63,18 @@ enum register_status_codes _register(char * new_login, int new_password,
     User * new_user = user_init(new_login, new_password);
     if (!new_user) return reg_no_memory;
     (*user_array_size)++;
-    User ** tmp = (User **)realloc(user_array, (*user_array_size));
-    if (!tmp) {
-        for (int i = 0; i < (*user_array_size); i++) {
-            free(user_array[i]->login);
-            free(user_array[i]);
+    if ((*user_array_size) >= (*user_array_capacity)) {
+        (*user_array_capacity) *= 2;
+        User ** tmp = (User **)realloc(user_array, (*user_array_capacity));
+        if (!tmp) {
+            for (int i = 0; i < (*user_array_size); i++) {
+                free(user_array[i]->login);
+                free(user_array[i]);
+            }
+            return reg_no_memory;
         }
-        return reg_no_memory;
+        user_array = tmp;
     }
-    user_array = tmp;
     user_array[(*user_array_size) - 1] = new_user;
     return reg_ok;
 }
@@ -109,19 +112,23 @@ enum string_status_codes get_a_string(FILE * in, char ** string) {
     if (!in) return str_wrong_data;
     int index = 0;
     int string_size = 1;
+    int string_capacity = 1;
     *string = (char *)malloc(sizeof(char) * (string_size));
     if (!(*string)) return str_no_memory;
 
     char input = fgetc(in);
     while (input != '\n' && input != '\t' && input != ' ' && input != EOF) {
         string_size++;
-        char * tmp = (char *)realloc((*string), sizeof(char) * (string_size));
-        if (!tmp) {
-            free(*string);
-            *string = NULL;
-            return str_no_memory;
+        if (string_size >= string_capacity) {
+            string_capacity *= 2;
+            char * tmp = (char *)realloc((*string), sizeof(char) * (string_capacity));
+            if (!tmp) {
+                free(*string);
+                *string = NULL;
+                return str_no_memory;
+            }
+            *string = tmp;
         }
-        *string = tmp;
         (*string)[index] = input;
         index++;
         input = fgetc(in);
@@ -312,7 +319,6 @@ void clear_user_array(User ** user_array, int user_array_size) {
         free(user_array[i]->login);
         free(user_array[i]);
     }
-    free(user_array);
 }
 
 void print_login_menu() {
@@ -338,7 +344,7 @@ int main(int argc, char * argv[]) {
     print_login_menu();
     char * string = NULL;
     User ** user_array = (User **)malloc(sizeof(User *));
-    
+    int user_array_capacity = 1;
     int user_array_size = 1;
     while (1) {
         enum string_status_codes status = get_a_string(stdin, &string);
@@ -354,7 +360,7 @@ int main(int argc, char * argv[]) {
                             if (password_validation(new_password_str)) {
                                 int new_password = atoi(new_password_str);
                                 free(new_password_str);
-                                enum register_status_codes reg_status = _register(new_login, new_password, user_array, &user_array_size);
+                                enum register_status_codes reg_status = _register(new_login, new_password, user_array, &user_array_size, &user_array_capacity);
                                 if (reg_status == reg_ok) {
                                     printf("Registered\n");
                                     print_login_menu();
