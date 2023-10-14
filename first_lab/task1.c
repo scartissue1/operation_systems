@@ -21,7 +21,11 @@ enum status_codes file_read(const unsigned int bytes_size, unsigned char bytes[b
 }
 
 int main (int argc, char * argv[]) {
-    FILE * binary_w = fopen(argv[1], "w");
+    if (argc != 2) {
+        printf("No filename\n");
+        return -1;
+    }
+    FILE * binary_w = fopen(argv[1], "wb");
     if (!binary_w) {
         printf("Cannot open the file\n");
         return -1;
@@ -36,7 +40,7 @@ int main (int argc, char * argv[]) {
     }
     fclose(binary_w);
     
-    FILE * binary_r = fopen(argv[1], "r");
+    FILE * binary_r = fopen(argv[1], "rb");
     if (!binary_w) {
         printf("Cannot open the file\n");
         return -1;
@@ -49,6 +53,16 @@ int main (int argc, char * argv[]) {
             long curr = ftell(binary_r);
             if (curr != -1L) printf("%ld\n", curr);
             else printf("Error occured\n");
+            printf("%d ", binary_r->_flags);
+            printf("%s ", binary_r->_IO_read_ptr);
+            printf("%s ", binary_r->_IO_read_end);
+            printf("%s ", binary_r->_IO_read_base);
+            printf("%s ", binary_r->_IO_write_ptr);
+            printf("%s ", binary_r->_IO_write_end);
+            printf("%s ", binary_r->_IO_write_base);
+            printf("%s ", binary_r->_IO_backup_base);
+            printf("%s ", binary_r->_IO_save_base);
+            printf("%s\n", binary_r->_IO_save_end);
         }
         else {
             printf("Error!\n");
@@ -58,7 +72,7 @@ int main (int argc, char * argv[]) {
     }
     fclose(binary_r);
 
-    FILE * binary_seek = fopen(argv[1], "r");
+    FILE * binary_seek = fopen(argv[1], "rb");
     if (!binary_seek) {
         printf("Cannot open the file\n");
         return -1;
