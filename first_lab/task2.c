@@ -22,10 +22,12 @@ User * user_init(char * login, int password) {
     return new_user;
 }
 
-int password_validation (int password) {
-    while (password) {
-        if (!isdigit(password % 10 + '0')) return 0;
-        password /= 10;
+int password_validation (const char * password) {
+    int password_length = strlen(password);
+    int index = 0;
+    while (index < password_length) {
+        if (!isdigit(password[index])) return 0;
+        index++;
     }
     return 1;
 }
@@ -57,7 +59,7 @@ enum register_status_codes _register(char * new_login, int new_password,
             if (strcmp(user_array[i]->login, new_login) == 0) return reg_registered;
         }
     }
-    if (!(0 <= new_password && new_password <= 1000000) || !password_validation(new_password)) return reg_wrong_password;
+    if (!(0 <= new_password && new_password <= 1000000)) return reg_wrong_password;
     User * new_user = user_init(new_login, new_password);
     if (!new_user) return reg_no_memory;
     (*user_array_size)++;
@@ -137,6 +139,26 @@ int date_validity(char * date) {
     !isdigit(date[3]) || !isdigit(date[4]) ||
     !isdigit(date[6]) || !isdigit(date[7]) || !isdigit(date[8]) || !isdigit(date[9])) return 0;
     if (date[2] != '/' || date[5] != '/') return 0;
+    return 1;
+}
+
+int date_second_validation(int day, int month, int year) {
+    if (day <= 0) return 0;
+    if (month == 1 || month == 3 || month == 5 || month == 7 || month == 8 ||
+    month == 10 || month == 12) {
+        if (day > 31) return 0;
+    }
+    else if (month == 2) {
+        if (year % 4 == 0) {
+            if (day > 29) return 0;
+        }
+        else {
+            if (day > 28) return 0;
+        }
+    }
+    else {
+        if (day > 30) return 0;
+    }
     return 1;
 }
 
@@ -257,20 +279,23 @@ enum command_status_codes get_command(int curr_index, User ** user_array, int us
             int date_day_int = (date[0] - '0') * 10 + (date[1] - '0');
             int date_month_int = (date[3] - '0') * 10 + (date[4] - '0');
             int date_year_int = (date[6] - '0') * 1000 + (date[7] - '0') * 100 + (date[8] - '0') * 10 + (date[9] - '0');
-            int curr_date_day = local->tm_mday, curr_date_month = local->tm_mon + 1, curr_date_year = local->tm_year + 1900;
-            if (strcmp(flag, "-s") == 0) {
-                printf("Between %s and %02d/%02d/%d is %lld seconds\n", date, curr_date_day, curr_date_month, curr_date_year, diff_in_sec(date_day_int, date_month_int, date_year_int, curr_date_day, curr_date_month, curr_date_year));
+            if (date_second_validation(date_day_int, date_month_int, date_year_int)) {
+                int curr_date_day = local->tm_mday, curr_date_month = local->tm_mon + 1, curr_date_year = local->tm_year + 1900;
+                if (strcmp(flag, "-s") == 0) {
+                    printf("Between %s and %02d/%02d/%d is %lld seconds\n", date, curr_date_day, curr_date_month, curr_date_year, diff_in_sec(date_day_int, date_month_int, date_year_int, curr_date_day, curr_date_month, curr_date_year));
+                }
+                else if (strcmp(flag, "-m") == 0) {
+                    printf("Between %s and %02d/%02d/%d is %lld minuts\n", date, curr_date_day, curr_date_month, curr_date_year, diff_in_min(date_day_int, date_month_int, date_year_int, curr_date_day, curr_date_month, curr_date_year));
+                }
+                else if (strcmp(flag, "-h") == 0) {
+                    printf("Between %s and %02d/%02d/%d is %d hours\n", date, curr_date_day, curr_date_month, curr_date_year, diff_in_hour(date_day_int, date_month_int, date_year_int, curr_date_day, curr_date_month, curr_date_year));
+                }
+                else if (strcmp(flag, "-y") == 0) {
+                    printf("Between %s and %02d/%02d/%d is %lf years\n", date, curr_date_day, curr_date_month, curr_date_year, diff_in_year(date_year_int, curr_date_year, date_month_int, curr_date_month, date_day_int, curr_date_day));
+                }
+                else printf("Wrong flag\n");
             }
-            else if (strcmp(flag, "-m") == 0) {
-                printf("Between %s and %02d/%02d/%d is %lld minuts\n", date, curr_date_day, curr_date_month, curr_date_year, diff_in_min(date_day_int, date_month_int, date_year_int, curr_date_day, curr_date_month, curr_date_year));
-            }
-            else if (strcmp(flag, "-h") == 0) {
-                printf("Between %s and %02d/%02d/%d is %d hours\n", date, curr_date_day, curr_date_month, curr_date_year, diff_in_hour(date_day_int, date_month_int, date_year_int, curr_date_day, curr_date_month, curr_date_year));
-            }
-            else if (strcmp(flag, "-y") == 0) {
-                printf("Between %s and %02d/%02d/%d is %lf years\n", date, curr_date_day, curr_date_month, curr_date_year, diff_in_year(date_year_int, curr_date_year, date_month_int, curr_date_month, date_day_int, curr_date_day));
-            }
-            else printf("Wrong flag\n");
+            else printf("Wrong date\n");
             free(date);
             free(flag);
 
@@ -284,9 +309,10 @@ enum command_status_codes get_command(int curr_index, User ** user_array, int us
 
 void clear_user_array(User ** user_array, int user_array_size) {
     for (int i = 1; i < user_array_size; i++) {
-        //free(user_array[i]->login);
+        free(user_array[i]->login);
         free(user_array[i]);
     }
+    free(user_array);
 }
 
 void print_login_menu() {
@@ -325,28 +351,31 @@ int main(int argc, char * argv[]) {
                         char * new_password_str = NULL;
                         enum string_status_codes password = get_a_string(stdin, &new_password_str);
                         if (password == str_ok) {
-                            int new_password = atoi(new_password_str);
-                            free(new_password_str);
-                            enum register_status_codes reg_status = _register(new_login, new_password, user_array, &user_array_size);
-                            if (reg_status == reg_ok) {
-                                printf("Registered\n");
-                                print_login_menu();
+                            if (password_validation(new_password_str)) {
+                                int new_password = atoi(new_password_str);
+                                free(new_password_str);
+                                enum register_status_codes reg_status = _register(new_login, new_password, user_array, &user_array_size);
+                                if (reg_status == reg_ok) {
+                                    printf("Registered\n");
+                                    print_login_menu();
+                                }
+                                else if (reg_status == reg_no_memory) {
+                                    printf("No memory\n");
+                                    free(new_login);
+                                    free(string);
+                                    clear_user_array(user_array, user_array_size);
+                                    return -1;
+                                }
+                                else if (reg_status == reg_registered) {
+                                    printf("Already registered\n");
+                                    print_login_menu();
+                                }
+                                else {
+                                    printf("Password should be in [0, 10^6] and login should contain only numbers or letters and have size less then 6\n");
+                                    print_login_menu();
+                                }
                             }
-                            else if (reg_status == reg_no_memory) {
-                                printf("No memory\n");
-                                free(new_login);
-                                free(string);
-                                clear_user_array(user_array, user_array_size);
-                                return -1;
-                            }
-                            else if (reg_status == reg_registered) {
-                                printf("Already registered\n");
-                                print_login_menu();
-                            }
-                            else {
-                                printf("Password should be in [0, 10^6] and login should contain only numbers or letters and have size less then 6\n");
-                                print_login_menu();
-                            }
+                            else printf("Password should contain only digits\n");
                         }
                         else if (password == str_no_memory) {
                             free(new_login);
@@ -442,5 +471,6 @@ int main(int argc, char * argv[]) {
             }
         }
     }
+    fflush(stdin);
     return 0;
 }
