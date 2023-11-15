@@ -12,8 +12,6 @@
 #include "Pqueue.h"
 #include "erproc.h"
 
-#define END_OF_CONVERSATION "END"
-
 status_codes getMessage(Pqueue **root, char *filename, int *overall_index) {
     if (!filename) {
         return INVALID_PARAMETER;
@@ -22,8 +20,16 @@ status_codes getMessage(Pqueue **root, char *filename, int *overall_index) {
     if (!stream) {
         return NO_FILE;
     }
+    char symbol = fgetc(stream);
+    if (symbol == EOF) {
+        return INVALID_PARAMETER;
+    }
+    fseek(stream, 0, SEEK_SET);
     char *command = NULL;
     while (getline(&command, &(size_t){0}, stream) != -1) {
+        if (!strlen(command)) {
+            continue;
+        }
         if (!isdigit(command[6])) {
             free(command);
             command = NULL;
@@ -199,6 +205,11 @@ int main(int argc, char *argv[]) {
                 return -1;
             case NO_FILE:
                 write(fd, "No such file\n", 14);
+                close(fd);
+                close(server);
+                return -1;
+            case INVALID_PARAMETER:
+                write(fd, "Invalid parameter detected\n", 28);
                 close(fd);
                 close(server);
                 return -1;
