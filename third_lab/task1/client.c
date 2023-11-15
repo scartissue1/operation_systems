@@ -9,8 +9,6 @@
 
 #include "erproc.h"
 
-#define END_OF_CONVERSATION "END\0"
-
 int main(int argc, char *argv[]) {
     int fd = Socket(AF_INET, SOCK_STREAM, 0);
     struct sockaddr_in addr = {0};
